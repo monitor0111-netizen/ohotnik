@@ -294,6 +294,57 @@ textarea{resize:vertical; min-height:50px;}
 .cat-tab.active.putaway{background:var(--olive); color:#fff; border-color:var(--olive);}
 .cat-tab.active.finish{background:var(--brass-dark); color:#fff; border-color:var(--brass-dark);}
 
+.arc-tab{
+  flex:1;
+  padding:9px 4px;
+  text-align:center;
+  border-radius:8px;
+  background:#fff;
+  border:1.5px solid var(--line);
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  color:var(--ink-soft);
+}
+.arc-tab.active{background:var(--forest); color:var(--brass); border-color:var(--forest);}
+
+.archive-card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:10px;
+  margin-bottom:12px;
+  overflow:hidden;
+  display:flex;
+}
+.archive-card .thumb{
+  width:78px; height:78px;
+  object-fit:cover;
+  flex-shrink:0;
+  background:var(--paper-dark);
+}
+.archive-card .thumb.no-photo{
+  display:flex; align-items:center; justify-content:center;
+  color:var(--ink-soft); font-size:10px; text-align:center; padding:4px;
+}
+.archive-card .info{
+  flex:1;
+  padding:9px 11px;
+  min-width:0;
+}
+.archive-card .top-row{display:flex; justify-content:space-between; align-items:center; gap:6px;}
+.archive-card .loc{font-size:11px; font-weight:700; text-transform:uppercase; color:var(--olive-dark);}
+.archive-card .done-date{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink-soft);}
+.archive-card .note{font-size:12px; color:var(--ink-soft); margin:2px 0 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.archive-card .bottom-row{display:flex; align-items:center; gap:6px;}
+.archive-card .xp-pill{font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:var(--brass-dark); background:rgba(201,162,39,0.15); padding:2px 7px; border-radius:20px;}
+.archive-card .tag-dot{width:8px; height:8px; border-radius:50%; flex-shrink:0;}
+.archive-card .arc-actions{display:flex; gap:6px; margin-left:auto;}
+.archive-card .arc-actions button{
+  border:none; background:none; font-size:14px; cursor:pointer; padding:2px 4px; color:var(--ink-soft);
+}
+.archive-card .arc-actions button.del-photo:hover{color:var(--rust);}
+.archive-card .arc-actions button.del-record:hover{color:var(--rust);}
+
 .sort-row{
   display:flex; align-items:center; gap:8px; margin-bottom:14px;
 }
@@ -601,6 +652,26 @@ nav button.active svg{stroke:var(--brass);}
       <div id="catalog-list"></div>
     </section>
 
+    <!-- ARCHIVE SCREEN -->
+    <section class="screen" id="screen-archive">
+      <h2 class="section-title">Архив</h2>
+      <div class="cat-tabs">
+        <div class="arc-tab active" data-tag="all">Всё</div>
+        <div class="arc-tab" data-tag="throw">Выкинуть</div>
+        <div class="arc-tab" data-tag="putaway">Убрать</div>
+        <div class="arc-tab" data-tag="finish">Доделать</div>
+      </div>
+
+      <div class="panel" style="padding:12px 14px;">
+        <div style="font-size:12px; color:var(--ink-soft); margin-bottom:10px;">
+          Фото выполненных находок хранятся здесь. Если места на устройстве становится жалко — можно почистить снимки точечно или скопом (записи и XP при этом останутся в статистике).
+        </div>
+        <button type="button" id="bulk-clean-btn" style="width:100%; padding:9px; border:1.5px solid var(--rust); border-radius:8px; background:none; color:var(--rust); font-weight:600; font-size:12.5px; cursor:pointer;">🧹 Удалить фото старше 30 дней</button>
+      </div>
+
+      <div id="archive-list"></div>
+    </section>
+
     <!-- STATS SCREEN -->
     <section class="screen" id="screen-stats">
       <h2 class="section-title">Статистика охоты</h2>
@@ -621,6 +692,18 @@ nav button.active svg{stroke:var(--brass);}
         <div id="breakdown"></div>
       </div>
 
+      <div class="panel">
+        <label class="field-label">Ручной перенос между устройствами (без интернета и аккаунтов)</label>
+        <div style="font-size:12px; color:var(--ink-soft); margin-bottom:12px;">
+          Выгрузи файл на одном устройстве → перешли его себе любым способом (почта, мессенджер, облако) → загрузи на другом.
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" id="export-btn" style="flex:1; padding:11px; border:none; border-radius:8px; background:var(--olive); color:#fff; font-weight:600; font-size:13px; cursor:pointer;">⬇ Экспорт в файл</button>
+          <button type="button" id="import-btn" style="flex:1; padding:11px; border:1.5px solid var(--olive); border-radius:8px; background:none; color:var(--olive-dark); font-weight:600; font-size:13px; cursor:pointer;">⬆ Импорт из файла</button>
+        </div>
+        <input type="file" accept="application/json" class="hidden-input" id="import-file-input">
+      </div>
+
       <button class="reset-btn" id="reset-data">Сбросить все данные</button>
     </section>
 
@@ -634,6 +717,10 @@ nav button.active svg{stroke:var(--brass);}
     <button class="nav-btn" data-screen="catalog">
       <svg viewBox="0 0 24 24" fill="none" stroke="var(--paper)" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
       Трофеи
+    </button>
+    <button class="nav-btn" data-screen="archive">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--paper)" stroke-width="1.8"><rect x="3.5" y="4" width="17" height="5" rx="1.2"/><path d="M4.5 9v9a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5V9"/><path d="M10 13h4"/></svg>
+      Архив
     </button>
     <button class="nav-btn" data-screen="stats">
       <svg viewBox="0 0 24 24" fill="none" stroke="var(--paper)" stroke-width="1.8"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
@@ -665,7 +752,7 @@ let sortMode = 'custom';
 let selectedTag = null;
 let pendingPhoto = null;
 
-// ---------- STORAGE (IndexedDB, работает офлайн, данные хранятся только на этом телефоне) ----------
+// ---------- STORAGE (IndexedDB, данные хранятся только на этом устройстве) ----------
 const DB_NAME = 'ohotnik-db';
 const STORE = 'kv';
 
@@ -715,6 +802,8 @@ async function loadState(){
 }
 
 async function saveState(){
+  populateLocationSelect();
+  renderAll();
   try{
     await idbSet('hunter_state', JSON.stringify(state));
   }catch(e){
@@ -722,6 +811,57 @@ async function saveState(){
     showToast('Не удалось сохранить данные (память телефона переполнена?)');
   }
 }
+
+// ---------- РУЧНОЙ ЭКСПОРТ / ИМПОРТ (просто файл, без аккаунтов и интернета) ----------
+document.getElementById('export-btn').addEventListener('click', ()=>{
+  try{
+    const dataStr = JSON.stringify(state, null, 2);
+    const blob = new Blob([dataStr], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = 'ohotnik-export-'+stamp+'.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast('Файл выгружен');
+  }catch(e){
+    console.error('Export error', e);
+    showToast('Не удалось выгрузить файл');
+  }
+});
+
+document.getElementById('import-btn').addEventListener('click', ()=>{
+  document.getElementById('import-file-input').click();
+});
+
+document.getElementById('import-file-input').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    if(!parsed || !Array.isArray(parsed.items)){
+      showToast('Файл повреждён или это не выгрузка Охотника');
+      return;
+    }
+    if(!confirm('Все текущие данные на этом устройстве будут заменены содержимым файла. Продолжить?')) return;
+    state = {
+      items: parsed.items || [],
+      locations: parsed.locations && parsed.locations.length ? parsed.locations : [...DEFAULT_LOCATIONS],
+      nextId: parsed.nextId || (Math.max(0, ...(parsed.items||[]).map(i=>i.id||0)) + 1)
+    };
+    await saveState();
+    showToast('Данные импортированы');
+  }catch(err){
+    console.error('Import error', err);
+    showToast('Не удалось прочитать файл');
+  }finally{
+    e.target.value = '';
+  }
+});
 
 // ---------- UTIL ----------
 function showToast(msg){
@@ -799,6 +939,7 @@ document.querySelectorAll('.nav-btn').forEach(btn=>{
     currentScreen = btn.dataset.screen;
     document.getElementById('screen-'+currentScreen).classList.add('active');
     if(currentScreen==='catalog') renderCatalog();
+    if(currentScreen==='archive') renderArchive();
     if(currentScreen==='stats') renderStats();
   });
 });
@@ -1048,6 +1189,100 @@ function escapeHtml(str){
   return d.innerHTML;
 }
 
+// ---------- ARCHIVE ----------
+let archiveFilter = 'all';
+
+document.querySelectorAll('.arc-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.arc-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    archiveFilter = tab.dataset.tag;
+    renderArchive();
+  });
+});
+
+function renderArchive(){
+  const list = document.getElementById('archive-list');
+  list.innerHTML = '';
+
+  let items = state.items.filter(i=>i.status==='done');
+  if(archiveFilter!=='all') items = items.filter(i=>i.tag===archiveFilter);
+  items.sort((a,b)=> (b.doneAt||'').localeCompare(a.doneAt||''));
+
+  if(items.length===0){
+    list.innerHTML = `<div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3.5" y="4" width="17" height="5" rx="1.2"/><path d="M4.5 9v9a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5V9"/></svg>
+      <p>Архив пока пуст.</p>
+    </div>`;
+    return;
+  }
+
+  items.forEach(item=>{
+    const card = document.createElement('div');
+    card.className = 'archive-card';
+
+    const thumbHtml = item.photo
+      ? `<img class="thumb" src="${item.photo}">`
+      : `<div class="thumb no-photo">фото удалено</div>`;
+
+    const doneDateStr = item.doneAt ? fmtDate(item.doneAt.slice(0,10)) : '—';
+
+    card.innerHTML = `
+      ${thumbHtml}
+      <div class="info">
+        <div class="top-row">
+          <span class="loc">${escapeHtml(item.location)}</span>
+          <span class="done-date">${doneDateStr}</span>
+        </div>
+        <div class="note">${escapeHtml(item.note||'без заметки')}</div>
+        <div class="bottom-row">
+          <span class="tag-dot" style="background:${TAG_META[item.tag].color}"></span>
+          <span class="xp-pill">${item.xp} XP</span>
+          <div class="arc-actions">
+            ${item.photo ? '<button class="del-photo" title="Удалить фото">🖼✕</button>' : ''}
+            <button class="del-record" title="Удалить запись целиком">🗑</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const delPhotoBtn = card.querySelector('.del-photo');
+    if(delPhotoBtn){
+      delPhotoBtn.addEventListener('click', async ()=>{
+        item.photo = null;
+        await saveState();
+        renderArchive();
+        showToast('Фото удалено');
+      });
+    }
+
+    card.querySelector('.del-record').addEventListener('click', async ()=>{
+      if(!confirm('Удалить запись целиком? Это уменьшит статистику XP безвозвратно.')) return;
+      state.items = state.items.filter(i=>i.id!==item.id);
+      await saveState();
+      renderArchive();
+      showToast('Запись удалена');
+    });
+
+    list.appendChild(card);
+  });
+}
+
+document.getElementById('bulk-clean-btn').addEventListener('click', async ()=>{
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate()-30);
+  const targets = state.items.filter(i=>i.status==='done' && i.photo && i.doneAt && new Date(i.doneAt) < cutoff);
+  if(targets.length===0){
+    showToast('Нет фото старше 30 дней');
+    return;
+  }
+  if(!confirm(`Удалить фото у ${targets.length} выполненных записей старше 30 дней? Сами записи и XP останутся.`)) return;
+  targets.forEach(i=> i.photo = null);
+  await saveState();
+  renderArchive();
+  showToast('Фото очищены: '+targets.length);
+});
+
 // ---------- STATS ----------
 function renderStats(){
   const done = state.items.filter(i=>i.status==='done');
@@ -1136,6 +1371,7 @@ function updateHeader(){
 function renderAll(){
   updateHeader();
   renderCatalog();
+  renderArchive();
   renderStats();
 }
 
