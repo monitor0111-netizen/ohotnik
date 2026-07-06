@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Охотник</title>
+<meta name="description" content="Охотник — трекер расхламления. Фотографируй беспорядок, зарабатывай XP.">
+<meta name="theme-color" content="#1F2A1E">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Охотник">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+html,body{overscroll-behavior-y:contain;}
+body{padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);}
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+:root{
+  --paper:#EDE6D6;
+  --paper-dark:#E0D7C2;
+  --forest:#1F2A1E;
+  --forest-2:#283624;
+  --forest-3:#33422C;
+  --olive:#6B7A4F;
+  --olive-dark:#535F3D;
+  --rust:#B5451B;
+  --rust-dark:#8E3714;
+  --brass:#C9A227;
+  --brass-dark:#A6851E;
+  --ink:#2C2C28;
+  --ink-soft:#6b6b5f;
+  --line:#c9bfa4;
+}
+
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  background:var(--forest);
+  font-family:'IBM Plex Sans',sans-serif;
+  color:var(--ink);
+  display:flex;
+  justify-content:center;
+}
+
+#app{
+  width:100%;
+  max-width:460px;
+  min-height:100vh;
+  background:var(--paper);
+  display:flex;
+  flex-direction:column;
+  position:relative;
+  background-image:
+    radial-gradient(circle at 15% 8%, rgba(107,122,79,0.06) 0%, transparent 40%),
+    radial-gradient(circle at 85% 92%, rgba(181,69,27,0.05) 0%, transparent 40%);
+}
+
+/* HEADER */
+header{
+  background:var(--forest);
+  color:var(--paper);
+  padding:16px 18px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:3px solid var(--rust);
+  position:sticky;
+  top:0;
+  z-index:20;
+}
+header .brand{
+  display:flex;
+  flex-direction:column;
+  line-height:1;
+}
+header .brand .title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:30px;
+  letter-spacing:3px;
+  color:var(--paper);
+}
+header .brand .rank{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  color:var(--brass);
+  letter-spacing:1px;
+  margin-top:2px;
+}
+header .xp-badge{
+  background:var(--forest-3);
+  border:1.5px solid var(--brass);
+  border-radius:8px;
+  padding:6px 12px;
+  text-align:center;
+}
+header .xp-badge .num{
+  font-family:'IBM Plex Mono',monospace;
+  font-weight:600;
+  font-size:18px;
+  color:var(--brass);
+}
+header .xp-badge .lbl{
+  font-size:9px;
+  letter-spacing:1.5px;
+  color:var(--paper);
+  opacity:0.7;
+}
+
+/* MAIN */
+main{
+  flex:1;
+  overflow-y:auto;
+  padding:16px 16px 90px;
+}
+.screen{display:none;}
+.screen.active{display:block; animation:fadeIn .25s ease;}
+@keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+h2.section-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:22px;
+  letter-spacing:2px;
+  color:var(--forest);
+  margin:0 0 12px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+h2.section-title:before{
+  content:'';
+  width:4px; height:20px;
+  background:var(--rust);
+  display:inline-block;
+}
+
+/* CARD/PANEL */
+.panel{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:16px;
+  margin-bottom:14px;
+  box-shadow:0 2px 0 rgba(44,44,40,0.05);
+}
+
+label.field-label{
+  display:block;
+  font-size:11px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  margin-bottom:6px;
+  font-weight:600;
+}
+
+/* photo capture */
+.photo-zone{
+  width:100%;
+  aspect-ratio:4/3;
+  border:2px dashed var(--line);
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  background:var(--paper-dark);
+  position:relative;
+  margin-bottom:16px;
+  cursor:pointer;
+}
+.photo-zone img{width:100%; height:100%; object-fit:cover;}
+.photo-zone .placeholder{
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  color:var(--ink-soft);
+}
+.photo-zone .placeholder svg{width:38px; height:38px; opacity:0.6;}
+.photo-zone .placeholder span{font-size:13px; font-weight:500;}
+
+/* tag buttons */
+.tag-row{display:flex; gap:8px; margin-bottom:16px;}
+.tag-btn{
+  flex:1;
+  padding:10px 4px;
+  border-radius:8px;
+  border:2px solid transparent;
+  font-family:'IBM Plex Sans',sans-serif;
+  font-weight:600;
+  font-size:13px;
+  cursor:pointer;
+  color:#fff;
+  opacity:0.55;
+  transition:all .15s;
+}
+.tag-btn.throw{background:var(--rust);}
+.tag-btn.putaway{background:var(--olive);}
+.tag-btn.finish{background:var(--brass-dark);}
+.tag-btn.selected{opacity:1; border-color:var(--forest); transform:translateY(-1px);}
+
+select, input[type=date], input[type=text], input[type=number], textarea{
+  width:100%;
+  padding:10px 12px;
+  border:1.5px solid var(--line);
+  border-radius:8px;
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:14px;
+  background:#fff;
+  color:var(--ink);
+  margin-bottom:14px;
+}
+textarea{resize:vertical; min-height:50px;}
+
+.xp-stepper{
+  display:flex; align-items:center; gap:10px; margin-bottom:16px;
+}
+.xp-stepper button{
+  width:38px; height:38px;
+  border-radius:8px;
+  border:none;
+  background:var(--forest);
+  color:var(--brass);
+  font-size:18px;
+  font-weight:700;
+  cursor:pointer;
+}
+.xp-stepper .xp-val{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:20px;
+  font-weight:600;
+  min-width:60px;
+  text-align:center;
+  color:var(--forest);
+}
+
+.btn-primary{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:9px;
+  background:var(--rust);
+  color:#fff;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:19px;
+  letter-spacing:1.5px;
+  cursor:pointer;
+  box-shadow:0 3px 0 var(--rust-dark);
+}
+.btn-primary:active{transform:translateY(2px); box-shadow:0 1px 0 var(--rust-dark);}
+
+.toast{
+  position:fixed;
+  bottom:100px;
+  left:50%;
+  transform:translateX(-50%) translateY(10px);
+  background:var(--forest);
+  color:var(--paper);
+  padding:10px 18px;
+  border-radius:20px;
+  font-size:13px;
+  font-weight:500;
+  border:1px solid var(--brass);
+  opacity:0;
+  pointer-events:none;
+  transition:all .3s;
+  z-index:100;
+  white-space:nowrap;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+/* CATALOG TABS */
+.cat-tabs{display:flex; gap:6px; margin-bottom:14px;}
+.cat-tab{
+  flex:1;
+  padding:9px 4px;
+  text-align:center;
+  border-radius:8px;
+  background:#fff;
+  border:1.5px solid var(--line);
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  color:var(--ink-soft);
+  position:relative;
+}
+.cat-tab .count{
+  display:block;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:15px;
+  margin-top:2px;
+}
+.cat-tab.active.throw{background:var(--rust); color:#fff; border-color:var(--rust);}
+.cat-tab.active.putaway{background:var(--olive); color:#fff; border-color:var(--olive);}
+.cat-tab.active.finish{background:var(--brass-dark); color:#fff; border-color:var(--brass-dark);}
+
+.sort-row{
+  display:flex; align-items:center; gap:8px; margin-bottom:14px;
+}
+.sort-row select{margin-bottom:0; flex:1; padding:8px 10px; font-size:12px;}
+
+.item-card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:10px;
+  margin-bottom:12px;
+  overflow:hidden;
+  position:relative;
+}
+.item-card .top{
+  display:flex;
+  gap:0;
+}
+.item-card .thumb{
+  width:92px; height:92px;
+  object-fit:cover;
+  flex-shrink:0;
+  background:var(--paper-dark);
+}
+.item-card .info{
+  flex:1;
+  padding:10px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  min-width:0;
+}
+.item-card .loc{
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+  color:var(--olive-dark);
+}
+.item-card .note{
+  font-size:12.5px;
+  color:var(--ink-soft);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  display:-webkit-box;
+  -webkit-line-clamp:1;
+  -webkit-box-orient:vertical;
+}
+.item-card .meta-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:2px;
+}
+.item-card .due{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11.5px;
+  color:var(--ink-soft);
+}
+.item-card .due.overdue{color:var(--rust); font-weight:700;}
+.item-card .xp-pill{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11.5px;
+  font-weight:700;
+  color:var(--brass-dark);
+  background:rgba(201,162,39,0.15);
+  padding:2px 7px;
+  border-radius:20px;
+}
+.item-card .controls{
+  display:flex;
+  border-top:1px solid var(--line);
+}
+.item-card .controls > *{
+  flex:1;
+  border:none;
+  background:none;
+  padding:9px 4px;
+  font-size:11.5px;
+  font-weight:600;
+  cursor:pointer;
+  border-right:1px solid var(--line);
+  color:var(--ink-soft);
+  display:flex; align-items:center; justify-content:center; gap:5px;
+}
+.item-card .controls > *:last-child{border-right:none;}
+.item-card .controls .done-btn{color:var(--olive-dark); font-weight:700;}
+.item-card .controls .del-btn{color:var(--rust);}
+.item-card .edit-panel{
+  padding:10px 12px;
+  border-top:1px solid var(--line);
+  display:none;
+  background:var(--paper-dark);
+}
+.item-card .edit-panel.open{display:block;}
+.item-card .edit-panel .row{display:flex; gap:8px;}
+.item-card .edit-panel select, .item-card .edit-panel input, .item-card .edit-panel textarea{margin-bottom:8px; font-size:12.5px; padding:7px 9px;}
+
+.empty-state{
+  text-align:center;
+  padding:50px 20px;
+  color:var(--ink-soft);
+}
+.empty-state svg{width:50px;height:50px;opacity:0.4;margin-bottom:10px;}
+.empty-state p{font-size:14px; margin:0;}
+
+/* STAMP */
+.stamp-overlay{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(237,230,214,0.4);
+  z-index:10;
+  pointer-events:none;
+}
+.stamp{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:26px;
+  letter-spacing:3px;
+  color:var(--rust);
+  border:4px solid var(--rust);
+  padding:6px 16px;
+  border-radius:6px;
+  transform:rotate(-10deg) scale(0);
+  opacity:0;
+  background:rgba(255,255,255,0.75);
+}
+.stamp.animate{
+  animation:stampIn .5s cubic-bezier(.2,1.4,.5,1) forwards;
+}
+@keyframes stampIn{
+  0%{transform:rotate(-10deg) scale(2.2); opacity:0;}
+  55%{transform:rotate(-10deg) scale(0.9); opacity:1;}
+  70%{transform:rotate(-10deg) scale(1.05);}
+  100%{transform:rotate(-10deg) scale(1); opacity:1;}
+}
+
+/* STATS */
+.stat-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:18px;
+}
+.stat-box{
+  background:var(--forest);
+  color:var(--paper);
+  border-radius:10px;
+  padding:14px;
+  border-bottom:3px solid var(--brass);
+}
+.stat-box .val{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:24px;
+  font-weight:600;
+  color:var(--brass);
+}
+.stat-box .lbl{
+  font-size:11px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  opacity:0.75;
+  margin-top:2px;
+}
+
+.bar-chart{display:flex; align-items:flex-end; gap:6px; height:110px; margin-bottom:8px;}
+.bar-chart .col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;}
+.bar-chart .bar{
+  width:100%;
+  max-width:28px;
+  background:linear-gradient(to top, var(--olive), var(--brass));
+  border-radius:4px 4px 0 0;
+  min-height:2px;
+}
+.bar-chart .day-lbl{font-size:9.5px; color:var(--ink-soft); margin-top:4px;}
+
+.breakdown-row{
+  display:flex; align-items:center; gap:10px; margin-bottom:10px;
+}
+.breakdown-row .dot{width:10px; height:10px; border-radius:50%; flex-shrink:0;}
+.breakdown-row .lbl{flex:1; font-size:13px; font-weight:600;}
+.breakdown-row .val{font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--ink-soft);}
+
+.reset-btn{
+  width:100%;
+  padding:10px;
+  margin-top:6px;
+  background:none;
+  border:1.5px solid var(--rust);
+  color:var(--rust);
+  border-radius:8px;
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+/* NAV */
+nav{
+  position:fixed;
+  bottom:0;
+  width:100%;
+  max-width:460px;
+  background:var(--forest);
+  display:flex;
+  border-top:2px solid var(--rust);
+  z-index:20;
+}
+nav button{
+  flex:1;
+  background:none;
+  border:none;
+  padding:11px 4px 9px;
+  color:var(--paper);
+  opacity:0.55;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  cursor:pointer;
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:10.5px;
+  font-weight:600;
+  letter-spacing:0.5px;
+}
+nav button svg{width:21px; height:21px;}
+nav button.active{opacity:1; color:var(--brass);}
+nav button.active svg{stroke:var(--brass);}
+
+.hidden-input{display:none;}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <header>
+    <div class="brand">
+      <div class="title">ОХОТНИК</div>
+      <div class="rank" id="rank-label">НОВИЧОК</div>
+    </div>
+    <div class="xp-badge">
+      <div class="num" id="total-xp">0</div>
+      <div class="lbl">XP</div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ADD SCREEN -->
+    <section class="screen active" id="screen-add">
+      <h2 class="section-title">Новая добыча</h2>
+      <div class="panel">
+        <div class="photo-zone" id="photo-zone">
+          <div class="placeholder" id="photo-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8z"/><circle cx="12" cy="13" r="3.3"/></svg>
+            <span>Сфотографировать находку</span>
+          </div>
+          <img id="photo-preview" style="display:none;">
+        </div>
+        <input type="file" accept="image/*" capture="environment" class="hidden-input" id="photo-input">
+
+        <label class="field-label">Что с этим делать</label>
+        <div class="tag-row">
+          <button class="tag-btn throw" data-tag="throw">Выкинуть</button>
+          <button class="tag-btn putaway" data-tag="putaway">Убрать</button>
+          <button class="tag-btn finish" data-tag="finish">Доделать</button>
+        </div>
+
+        <label class="field-label">Место</label>
+        <select id="add-location"></select>
+
+        <label class="field-label">Добавить новое место (необязательно)</label>
+        <input type="text" id="new-location" placeholder="Например: Дача">
+
+        <label class="field-label">Сделать до какого числа</label>
+        <input type="date" id="add-date">
+
+        <label class="field-label">Стоимость в XP</label>
+        <div class="xp-stepper">
+          <button id="xp-minus" type="button">−</button>
+          <div class="xp-val" id="xp-val">10</div>
+          <button id="xp-plus" type="button">+</button>
+        </div>
+
+        <label class="field-label">Заметка (необязательно)</label>
+        <textarea id="add-note" placeholder="Например: коробки от техники в углу гаража"></textarea>
+
+        <button class="btn-primary" id="save-item">В капкан</button>
+      </div>
+    </section>
+
+    <!-- CATALOG SCREEN -->
+    <section class="screen" id="screen-catalog">
+      <h2 class="section-title">Трофеи</h2>
+      <div class="cat-tabs">
+        <div class="cat-tab throw active" data-tag="throw">Выкинуть<span class="count" id="count-throw">0</span></div>
+        <div class="cat-tab putaway" data-tag="putaway">Убрать<span class="count" id="count-putaway">0</span></div>
+        <div class="cat-tab finish" data-tag="finish">Доделать<span class="count" id="count-finish">0</span></div>
+      </div>
+      <div class="sort-row">
+        <select id="sort-select">
+          <option value="custom">Своя очередь</option>
+          <option value="date">По сроку</option>
+          <option value="xp">По ценности (XP)</option>
+        </select>
+      </div>
+      <div id="catalog-list"></div>
+    </section>
+
+    <!-- STATS SCREEN -->
+    <section class="screen" id="screen-stats">
+      <h2 class="section-title">Статистика охоты</h2>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="val" id="stat-day">0</div><div class="lbl">XP сегодня</div></div>
+        <div class="stat-box"><div class="val" id="stat-week">0</div><div class="lbl">XP за неделю</div></div>
+        <div class="stat-box"><div class="val" id="stat-month">0</div><div class="lbl">XP за месяц</div></div>
+        <div class="stat-box"><div class="val" id="stat-year">0</div><div class="lbl">XP за год</div></div>
+      </div>
+
+      <div class="panel">
+        <label class="field-label">Последние 7 дней</label>
+        <div class="bar-chart" id="bar-chart"></div>
+      </div>
+
+      <div class="panel">
+        <label class="field-label">Выполнено по категориям</label>
+        <div id="breakdown"></div>
+      </div>
+
+      <button class="reset-btn" id="reset-data">Сбросить все данные</button>
+    </section>
+
+  </main>
+
+  <nav>
+    <button class="nav-btn active" data-screen="add">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--paper)" stroke-width="1.8"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8z"/><circle cx="12" cy="13" r="3.3"/></svg>
+      Добыча
+    </button>
+    <button class="nav-btn" data-screen="catalog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--paper)" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+      Трофеи
+    </button>
+    <button class="nav-btn" data-screen="stats">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--paper)" stroke-width="1.8"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
+      Статистика
+    </button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+
+</div>
+
+<script>
+const TAG_META = {
+  throw:   {label:'Выкинуть', color:'var(--rust)'},
+  putaway: {label:'Убрать',   color:'var(--olive)'},
+  finish:  {label:'Доделать', color:'var(--brass-dark)'}
+};
+const DEFAULT_LOCATIONS = ['Дом','Гараж','Склад','Магазин №1','Магазин №2','Заправка'];
+
+let state = {
+  items: [],
+  locations: [...DEFAULT_LOCATIONS],
+  nextId: 1
+};
+
+let currentScreen = 'add';
+let currentTag = 'throw';
+let sortMode = 'custom';
+let selectedTag = null;
+let pendingPhoto = null;
+
+// ---------- STORAGE (IndexedDB, работает офлайн, данные хранятся только на этом телефоне) ----------
+const DB_NAME = 'ohotnik-db';
+const STORE = 'kv';
+
+function openDB(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = ()=>{
+      req.result.createObjectStore(STORE);
+    };
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+
+async function idbGet(key){
+  const db = await openDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).get(key);
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+
+async function idbSet(key, value){
+  const db = await openDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(value, key);
+    tx.oncomplete = ()=> resolve(true);
+    tx.onerror = ()=> reject(tx.error);
+  });
+}
+
+async function loadState(){
+  try{
+    const raw = await idbGet('hunter_state');
+    if(raw){
+      const parsed = JSON.parse(raw);
+      state = Object.assign(state, parsed);
+    }
+  }catch(e){
+    console.error('Load error', e);
+  }
+  populateLocationSelect();
+  renderAll();
+}
+
+async function saveState(){
+  try{
+    await idbSet('hunter_state', JSON.stringify(state));
+  }catch(e){
+    console.error('Storage error', e);
+    showToast('Не удалось сохранить данные (память телефона переполнена?)');
+  }
+}
+
+// ---------- UTIL ----------
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+function todayISO(){
+  return new Date().toISOString().slice(0,10);
+}
+
+function fmtDate(iso){
+  if(!iso) return '—';
+  const d = new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit', year:'2-digit'});
+}
+
+function getRank(xp){
+  if(xp>=1000) return 'ЛЕГЕНДА ЛЕСА';
+  if(xp>=600) return 'МАСТЕР ОХОТЫ';
+  if(xp>=300) return 'ЕГЕРЬ';
+  if(xp>=150) return 'ОХОТНИК';
+  if(xp>=50) return 'СЛЕДОПЫТ';
+  return 'НОВИЧОК';
+}
+
+function totalXP(){
+  return state.items.filter(i=>i.status==='done').reduce((s,i)=>s+i.xp,0);
+}
+
+// ---------- IMAGE RESIZE ----------
+function resizeImage(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const maxDim = 700;
+        let w = img.width, h = img.height;
+        if(w>h && w>maxDim){ h = h*(maxDim/w); w = maxDim; }
+        else if(h>=w && h>maxDim){ w = w*(maxDim/h); h = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg', 0.55));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------- LOCATIONS ----------
+function populateLocationSelect(){
+  const sel = document.getElementById('add-location');
+  sel.innerHTML = '';
+  state.locations.forEach(loc=>{
+    const opt = document.createElement('option');
+    opt.value = loc; opt.textContent = loc;
+    sel.appendChild(opt);
+  });
+}
+
+// ---------- NAV ----------
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    currentScreen = btn.dataset.screen;
+    document.getElementById('screen-'+currentScreen).classList.add('active');
+    if(currentScreen==='catalog') renderCatalog();
+    if(currentScreen==='stats') renderStats();
+  });
+});
+
+// ---------- ADD SCREEN ----------
+document.getElementById('photo-zone').addEventListener('click', ()=>{
+  document.getElementById('photo-input').click();
+});
+
+document.getElementById('photo-input').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const dataUrl = await resizeImage(file);
+    pendingPhoto = dataUrl;
+    const preview = document.getElementById('photo-preview');
+    preview.src = dataUrl;
+    preview.style.display = 'block';
+    document.getElementById('photo-placeholder').style.display = 'none';
+  }catch(err){
+    showToast('Не удалось обработать фото');
+  }
+});
+
+document.querySelectorAll('.tag-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tag-btn').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedTag = btn.dataset.tag;
+  });
+});
+
+let xpValue = 10;
+document.getElementById('xp-minus').addEventListener('click', ()=>{
+  xpValue = Math.max(0, xpValue-5);
+  document.getElementById('xp-val').textContent = xpValue;
+});
+document.getElementById('xp-plus').addEventListener('click', ()=>{
+  xpValue += 5;
+  document.getElementById('xp-val').textContent = xpValue;
+});
+
+document.getElementById('save-item').addEventListener('click', async ()=>{
+  if(!pendingPhoto){ showToast('Сфотографируйте находку'); return; }
+  if(!selectedTag){ showToast('Выберите, что делать'); return; }
+
+  let location = document.getElementById('add-location').value;
+  const newLoc = document.getElementById('new-location').value.trim();
+  if(newLoc){
+    if(!state.locations.includes(newLoc)) state.locations.push(newLoc);
+    location = newLoc;
+  }
+
+  const item = {
+    id: state.nextId++,
+    photo: pendingPhoto,
+    tag: selectedTag,
+    location: location,
+    dueDate: document.getElementById('add-date').value || '',
+    xp: xpValue,
+    note: document.getElementById('add-note').value.trim(),
+    createdAt: new Date().toISOString(),
+    status: 'active',
+    doneAt: null,
+    order: state.items.filter(i=>i.tag===selectedTag).length
+  };
+  state.items.push(item);
+  await saveState();
+  showToast('Добыча зафиксирована');
+  resetAddForm();
+  populateLocationSelect();
+});
+
+function resetAddForm(){
+  pendingPhoto = null;
+  selectedTag = null;
+  xpValue = 10;
+  document.getElementById('photo-preview').style.display='none';
+  document.getElementById('photo-placeholder').style.display='flex';
+  document.querySelectorAll('.tag-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('add-date').value = '';
+  document.getElementById('xp-val').textContent = '10';
+  document.getElementById('add-note').value = '';
+  document.getElementById('new-location').value = '';
+}
+
+// ---------- CATALOG ----------
+document.querySelectorAll('.cat-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.cat-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    currentTag = tab.dataset.tag;
+    renderCatalog();
+  });
+});
+
+document.getElementById('sort-select').addEventListener('change', (e)=>{
+  sortMode = e.target.value;
+  renderCatalog();
+});
+
+function renderCatalog(){
+  ['throw','putaway','finish'].forEach(tag=>{
+    document.getElementById('count-'+tag).textContent =
+      state.items.filter(i=>i.tag===tag && i.status==='active').length;
+  });
+
+  const list = document.getElementById('catalog-list');
+  list.innerHTML = '';
+  let items = state.items.filter(i=>i.tag===currentTag && i.status==='active');
+
+  if(sortMode==='date'){
+    items.sort((a,b)=> (a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
+  }else if(sortMode==='xp'){
+    items.sort((a,b)=> b.xp - a.xp);
+  }else{
+    items.sort((a,b)=> a.order - b.order);
+  }
+
+  if(items.length===0){
+    list.innerHTML = `<div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+      <p>Пока пусто. Пора на охоту.</p>
+    </div>`;
+    return;
+  }
+
+  items.forEach(item=>{
+    const card = document.createElement('div');
+    card.className = 'item-card';
+    card.dataset.id = item.id;
+
+    const isOverdue = item.dueDate && item.dueDate < todayISO();
+    const canReorder = sortMode==='custom';
+
+    card.innerHTML = `
+      <div class="top">
+        <img class="thumb" src="${item.photo}">
+        <div class="info">
+          <div class="loc">${escapeHtml(item.location)}</div>
+          <div class="note">${escapeHtml(item.note||'без заметки')}</div>
+          <div class="meta-row">
+            <span class="due ${isOverdue?'overdue':''}">до ${fmtDate(item.dueDate)}</span>
+            <span class="xp-pill">${item.xp} XP</span>
+          </div>
+        </div>
+      </div>
+      <div class="controls">
+        ${canReorder ? `<button class="move-up">↑</button><button class="move-down">↓</button>` : ''}
+        <button class="edit-toggle">✎ Изм.</button>
+        <button class="done-btn">✓ Готово</button>
+        <button class="del-btn">🗑</button>
+      </div>
+      <div class="edit-panel">
+        <label class="field-label">Место</label>
+        <select class="edit-location"></select>
+        <label class="field-label">Срок</label>
+        <input type="date" class="edit-date" value="${item.dueDate||''}">
+        <label class="field-label">XP</label>
+        <input type="number" class="edit-xp" value="${item.xp}" min="0" step="5">
+        <label class="field-label">Заметка</label>
+        <textarea class="edit-note">${escapeHtml(item.note||'')}</textarea>
+      </div>
+      <div class="stamp-overlay" style="display:none;"><div class="stamp">ДОБЫТО</div></div>
+    `;
+
+    // populate edit location select
+    const editLocSel = card.querySelector('.edit-location');
+    state.locations.forEach(loc=>{
+      const opt = document.createElement('option');
+      opt.value = loc; opt.textContent = loc;
+      if(loc===item.location) opt.selected = true;
+      editLocSel.appendChild(opt);
+    });
+
+    card.querySelector('.edit-toggle').addEventListener('click', ()=>{
+      card.querySelector('.edit-panel').classList.toggle('open');
+    });
+
+    card.querySelector('.edit-location').addEventListener('change', async (e)=>{
+      item.location = e.target.value;
+      await saveState();
+      card.querySelector('.loc').textContent = item.location;
+    });
+    card.querySelector('.edit-date').addEventListener('change', async (e)=>{
+      item.dueDate = e.target.value;
+      await saveState();
+      renderCatalog();
+    });
+    card.querySelector('.edit-xp').addEventListener('change', async (e)=>{
+      item.xp = parseInt(e.target.value)||0;
+      await saveState();
+      renderCatalog();
+    });
+    card.querySelector('.edit-note').addEventListener('input', (e)=>{
+      item.note = e.target.value;
+    });
+    card.querySelector('.edit-note').addEventListener('blur', async ()=>{
+      await saveState();
+    });
+
+    if(canReorder){
+      card.querySelector('.move-up').addEventListener('click', async ()=>{
+        await reorder(item, -1);
+      });
+      card.querySelector('.move-down').addEventListener('click', async ()=>{
+        await reorder(item, 1);
+      });
+    }
+
+    card.querySelector('.done-btn').addEventListener('click', async ()=>{
+      const overlay = card.querySelector('.stamp-overlay');
+      overlay.style.display = 'flex';
+      overlay.querySelector('.stamp').classList.add('animate');
+      item.status = 'done';
+      item.doneAt = new Date().toISOString();
+      await saveState();
+      updateHeader();
+      setTimeout(()=>{ renderCatalog(); }, 750);
+    });
+
+    card.querySelector('.del-btn').addEventListener('click', async ()=>{
+      state.items = state.items.filter(i=>i.id!==item.id);
+      await saveState();
+      renderCatalog();
+    });
+
+    list.appendChild(card);
+  });
+}
+
+async function reorder(item, dir){
+  const siblings = state.items.filter(i=>i.tag===item.tag && i.status==='active').sort((a,b)=>a.order-b.order);
+  const idx = siblings.findIndex(i=>i.id===item.id);
+  const swapIdx = idx+dir;
+  if(swapIdx<0 || swapIdx>=siblings.length) return;
+  const tmp = siblings[idx].order;
+  siblings[idx].order = siblings[swapIdx].order;
+  siblings[swapIdx].order = tmp;
+  await saveState();
+  renderCatalog();
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// ---------- STATS ----------
+function renderStats(){
+  const done = state.items.filter(i=>i.status==='done');
+  const now = new Date();
+  const todayStr = todayISO();
+
+  const startOfWeek = new Date(now);
+  const dow = (now.getDay()+6)%7; // Monday=0
+  startOfWeek.setDate(now.getDate()-dow);
+  startOfWeek.setHours(0,0,0,0);
+
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+  let xpDay=0, xpWeek=0, xpMonth=0, xpYear=0;
+  done.forEach(i=>{
+    const d = new Date(i.doneAt);
+    if(i.doneAt.slice(0,10)===todayStr) xpDay += i.xp;
+    if(d>=startOfWeek) xpWeek += i.xp;
+    if(d>=startOfMonth) xpMonth += i.xp;
+    if(d>=startOfYear) xpYear += i.xp;
+  });
+
+  document.getElementById('stat-day').textContent = xpDay;
+  document.getElementById('stat-week').textContent = xpWeek;
+  document.getElementById('stat-month').textContent = xpMonth;
+  document.getElementById('stat-year').textContent = xpYear;
+
+  // bar chart - last 7 days
+  const bar = document.getElementById('bar-chart');
+  bar.innerHTML = '';
+  const days = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date();
+    d.setDate(d.getDate()-i);
+    const iso = d.toISOString().slice(0,10);
+    const xp = done.filter(it=>it.doneAt && it.doneAt.slice(0,10)===iso).reduce((s,it)=>s+it.xp,0);
+    days.push({iso, xp, label: d.toLocaleDateString('ru-RU',{weekday:'short'}).replace('.','')});
+  }
+  const maxXp = Math.max(...days.map(d=>d.xp), 1);
+  days.forEach(d=>{
+    const col = document.createElement('div');
+    col.className = 'col';
+    const barEl = document.createElement('div');
+    barEl.className = 'bar';
+    barEl.style.height = Math.max(2, (d.xp/maxXp*90)) + 'px';
+    const lbl = document.createElement('div');
+    lbl.className = 'day-lbl';
+    lbl.textContent = d.label;
+    col.appendChild(barEl);
+    col.appendChild(lbl);
+    bar.appendChild(col);
+  });
+
+  // breakdown
+  const bd = document.getElementById('breakdown');
+  bd.innerHTML = '';
+  Object.keys(TAG_META).forEach(tag=>{
+    const count = done.filter(i=>i.tag===tag).length;
+    const xp = done.filter(i=>i.tag===tag).reduce((s,i)=>s+i.xp,0);
+    const row = document.createElement('div');
+    row.className = 'breakdown-row';
+    row.innerHTML = `<span class="dot" style="background:${TAG_META[tag].color}"></span>
+      <span class="lbl">${TAG_META[tag].label}</span>
+      <span class="val">${count} шт · ${xp} XP</span>`;
+    bd.appendChild(row);
+  });
+}
+
+document.getElementById('reset-data').addEventListener('click', async ()=>{
+  if(!confirm('Точно удалить все записи и статистику? Это необратимо.')) return;
+  state = {items:[], locations:[...DEFAULT_LOCATIONS], nextId:1};
+  await saveState();
+  populateLocationSelect();
+  renderAll();
+  showToast('Данные сброшены');
+});
+
+// ---------- HEADER ----------
+function updateHeader(){
+  const xp = totalXP();
+  document.getElementById('total-xp').textContent = xp;
+  document.getElementById('rank-label').textContent = getRank(xp);
+}
+
+function renderAll(){
+  updateHeader();
+  renderCatalog();
+  renderStats();
+}
+
+loadState();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('service-worker.js').catch(err=>{
+      console.error('SW registration failed', err);
+    });
+  });
+}
+</script>
+</body>
+</html>
