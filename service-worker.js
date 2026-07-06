@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ohotnik-cache-v1';
+const CACHE_NAME = 'ohotnik-cache-v3';
 const APP_SHELL = [
   './',
   './index.html',
@@ -48,3 +48,4 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
