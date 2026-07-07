@@ -403,6 +403,11 @@ textarea{resize:vertical; min-height:50px;}
   font-size:11.5px;
   color:var(--ink-soft);
 }
+.item-card .created{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11.5px;
+  color:var(--ink-soft);
+}
 .item-card .due.overdue{color:var(--rust); font-weight:700;}
 .item-card .xp-pill{
   font-family:'IBM Plex Mono',monospace;
@@ -611,15 +616,6 @@ nav button.active svg{stroke:var(--brass);}
           <button class="tag-btn finish" data-tag="finish">Доделать</button>
         </div>
 
-        <label class="field-label">Место</label>
-        <select id="add-location"></select>
-
-        <label class="field-label">Добавить новое место (необязательно)</label>
-        <input type="text" id="new-location" placeholder="Например: Дача">
-
-        <label class="field-label">Сделать до какого числа</label>
-        <input type="date" id="add-date">
-
         <label class="field-label">Стоимость в XP</label>
         <div class="xp-stepper">
           <button id="xp-minus" type="button">−</button>
@@ -630,7 +626,7 @@ nav button.active svg{stroke:var(--brass);}
         <label class="field-label">Заметка (необязательно)</label>
         <textarea id="add-note" placeholder="Например: коробки от техники в углу гаража"></textarea>
 
-        <button class="btn-primary" id="save-item">В капкан</button>
+        <button class="btn-primary" id="save-item">Выстрел</button>
       </div>
     </section>
 
@@ -922,6 +918,7 @@ function resizeImage(file){
 // ---------- LOCATIONS ----------
 function populateLocationSelect(){
   const sel = document.getElementById('add-location');
+  if(!sel) return; // поле убрано из экрана "Добыча", используется только в редактировании трофея
   sel.innerHTML = '';
   state.locations.forEach(loc=>{
     const opt = document.createElement('option');
@@ -986,19 +983,14 @@ document.getElementById('save-item').addEventListener('click', async ()=>{
   if(!pendingPhoto){ showToast('Сфотографируйте находку'); return; }
   if(!selectedTag){ showToast('Выберите, что делать'); return; }
 
-  let location = document.getElementById('add-location').value;
-  const newLoc = document.getElementById('new-location').value.trim();
-  if(newLoc){
-    if(!state.locations.includes(newLoc)) state.locations.push(newLoc);
-    location = newLoc;
-  }
+  playGunshot();
 
   const item = {
     id: state.nextId++,
     photo: pendingPhoto,
     tag: selectedTag,
-    location: location,
-    dueDate: document.getElementById('add-date').value || '',
+    location: '',
+    dueDate: '',
     xp: xpValue,
     note: document.getElementById('add-note').value.trim(),
     createdAt: new Date().toISOString(),
@@ -1010,7 +1002,6 @@ document.getElementById('save-item').addEventListener('click', async ()=>{
   await saveState();
   showToast('Добыча зафиксирована');
   resetAddForm();
-  populateLocationSelect();
 });
 
 function resetAddForm(){
@@ -1020,10 +1011,63 @@ function resetAddForm(){
   document.getElementById('photo-preview').style.display='none';
   document.getElementById('photo-placeholder').style.display='flex';
   document.querySelectorAll('.tag-btn').forEach(b=>b.classList.remove('selected'));
-  document.getElementById('add-date').value = '';
   document.getElementById('xp-val').textContent = '10';
   document.getElementById('add-note').value = '';
-  document.getElementById('new-location').value = '';
+}
+
+// ---------- ЗВУК ВЫСТРЕЛА (синтезируется на лету, файл не нужен) ----------
+let audioCtx = null;
+function playGunshot(){
+  try{
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if(!AudioCtx) return;
+    if(!audioCtx) audioCtx = new AudioCtx();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+
+    const now = audioCtx.currentTime;
+    const duration = 0.28;
+
+    // шумовой "хлопок" — основа выстрела
+    const bufferSize = Math.floor(audioCtx.sampleRate * duration);
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++){
+      data[i] = (Math.random()*2-1) * Math.pow(1 - i/bufferSize, 2.2);
+    }
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+
+    const bandpass = audioCtx.createBiquadFilter();
+    bandpass.type = 'bandpass';
+    bandpass.frequency.value = 1500;
+    bandpass.Q.value = 0.5;
+
+    const noiseGain = audioCtx.createGain();
+    noiseGain.gain.setValueAtTime(1, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now+duration);
+
+    noise.connect(bandpass);
+    bandpass.connect(noiseGain);
+    noiseGain.connect(audioCtx.destination);
+
+    // низкий "удар" для мощности
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(150, now);
+    osc.frequency.exponentialRampToValueAtTime(35, now+0.13);
+    const oscGain = audioCtx.createGain();
+    oscGain.gain.setValueAtTime(0.9, now);
+    oscGain.gain.exponentialRampToValueAtTime(0.01, now+0.16);
+    osc.connect(oscGain);
+    oscGain.connect(audioCtx.destination);
+
+    noise.start(now);
+    noise.stop(now+duration);
+    osc.start(now);
+    osc.stop(now+0.16);
+  }catch(e){
+    console.error('Sound error', e);
+  }
 }
 
 // ---------- CATALOG ----------
@@ -1074,15 +1118,17 @@ function renderCatalog(){
 
     const isOverdue = item.dueDate && item.dueDate < todayISO();
     const canReorder = sortMode==='custom';
+    const createdDateStr = item.createdAt ? fmtDate(item.createdAt.slice(0,10)) : '—';
 
     card.innerHTML = `
       <div class="top">
         <img class="thumb" src="${item.photo}">
         <div class="info">
-          <div class="loc">${escapeHtml(item.location)}</div>
+          ${item.location ? `<div class="loc">${escapeHtml(item.location)}</div>` : ''}
           <div class="note">${escapeHtml(item.note||'без заметки')}</div>
           <div class="meta-row">
-            <span class="due ${isOverdue?'overdue':''}">до ${fmtDate(item.dueDate)}</span>
+            <span class="created">создано ${createdDateStr}</span>
+            ${item.dueDate ? `<span class="due ${isOverdue?'overdue':''}">до ${fmtDate(item.dueDate)}</span>` : ''}
             <span class="xp-pill">${item.xp} XP</span>
           </div>
         </div>
@@ -1231,7 +1277,7 @@ function renderArchive(){
       ${thumbHtml}
       <div class="info">
         <div class="top-row">
-          <span class="loc">${escapeHtml(item.location)}</span>
+          <span class="loc">${item.location ? escapeHtml(item.location) : ''}</span>
           <span class="done-date">${doneDateStr}</span>
         </div>
         <div class="note">${escapeHtml(item.note||'без заметки')}</div>
