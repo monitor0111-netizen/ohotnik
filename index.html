@@ -1015,8 +1015,69 @@ function resetAddForm(){
   document.getElementById('add-note').value = '';
 }
 
-// ---------- ЗВУК ВЫСТРЕЛА (синтезируется на лету, файл не нужен) ----------
+// ---------- ЗВУК ВЫСТРЕЛА (синтезируется на лету, файлы не нужны) ----------
 let audioCtx = null;
+
+function noiseBurst(ctx, time, duration, freq, Q, gain, power){
+  const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * duration));
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<bufferSize;i++){
+    data[i] = (Math.random()*2-1) * Math.pow(1 - i/bufferSize, power);
+  }
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+
+  const bandpass = ctx.createBiquadFilter();
+  bandpass.type = 'bandpass';
+  bandpass.frequency.value = freq;
+  bandpass.Q.value = Q;
+
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(gain, time);
+  g.gain.exponentialRampToValueAtTime(0.001, time+duration);
+
+  noise.connect(bandpass);
+  bandpass.connect(g);
+  g.connect(ctx.destination);
+
+  noise.start(time);
+  noise.stop(time+duration);
+}
+
+// металлический щелчок затвора: резкий шумовой тик + короткий резонансный призвук
+function boltClick(ctx, time, freq, gain){
+  noiseBurst(ctx, time, 0.045, freq, 6, gain, 3);
+
+  const osc = ctx.createOscillator();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(freq*0.6, time);
+  const oscGain = ctx.createGain();
+  oscGain.gain.setValueAtTime(gain*0.5, time);
+  oscGain.gain.exponentialRampToValueAtTime(0.001, time+0.03);
+  osc.connect(oscGain);
+  oscGain.connect(ctx.destination);
+  osc.start(time);
+  osc.stop(time+0.03);
+}
+
+// звон гильзы, ударяющейся об пол: короткий металлический "динь" + тычок шума
+function casingTink(ctx, time, freq, gain){
+  const dur = 0.11;
+  const osc = ctx.createOscillator();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(freq, time);
+  const oscGain = ctx.createGain();
+  oscGain.gain.setValueAtTime(gain, time);
+  oscGain.gain.exponentialRampToValueAtTime(0.001, time+dur);
+  osc.connect(oscGain);
+  oscGain.connect(ctx.destination);
+  osc.start(time);
+  osc.stop(time+dur);
+
+  noiseBurst(ctx, time, 0.02, freq*1.4, 4, gain*0.5, 2);
+}
+
 function playGunshot(){
   try{
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -1025,32 +1086,10 @@ function playGunshot(){
     if(audioCtx.state === 'suspended') audioCtx.resume();
 
     const now = audioCtx.currentTime;
-    const duration = 0.28;
 
-    // шумовой "хлопок" — основа выстрела
-    const bufferSize = Math.floor(audioCtx.sampleRate * duration);
-    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for(let i=0;i<bufferSize;i++){
-      data[i] = (Math.random()*2-1) * Math.pow(1 - i/bufferSize, 2.2);
-    }
-    const noise = audioCtx.createBufferSource();
-    noise.buffer = buffer;
+    // 1. основной хлопок выстрела
+    noiseBurst(audioCtx, now, 0.28, 1500, 0.5, 1, 2.2);
 
-    const bandpass = audioCtx.createBiquadFilter();
-    bandpass.type = 'bandpass';
-    bandpass.frequency.value = 1500;
-    bandpass.Q.value = 0.5;
-
-    const noiseGain = audioCtx.createGain();
-    noiseGain.gain.setValueAtTime(1, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.01, now+duration);
-
-    noise.connect(bandpass);
-    bandpass.connect(noiseGain);
-    noiseGain.connect(audioCtx.destination);
-
-    // низкий "удар" для мощности
     const osc = audioCtx.createOscillator();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(150, now);
@@ -1060,11 +1099,18 @@ function playGunshot(){
     oscGain.gain.exponentialRampToValueAtTime(0.01, now+0.16);
     osc.connect(oscGain);
     oscGain.connect(audioCtx.destination);
-
-    noise.start(now);
-    noise.stop(now+duration);
     osc.start(now);
     osc.stop(now+0.16);
+
+    // 2. передёргивание затвора — два щелчка после выстрела
+    boltClick(audioCtx, now+0.19, 3200, 0.5);
+    boltClick(audioCtx, now+0.34, 2400, 0.42);
+
+    // 3. падающая гильза — несколько затухающих отскоков об пол
+    casingTink(audioCtx, now+0.58, 5200, 0.35);
+    casingTink(audioCtx, now+0.70, 4600, 0.22);
+    casingTink(audioCtx, now+0.79, 4200, 0.13);
+    casingTink(audioCtx, now+0.855, 3900, 0.07);
   }catch(e){
     console.error('Sound error', e);
   }
