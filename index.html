@@ -524,6 +524,19 @@ textarea{resize:vertical; min-height:50px;}
 }
 .bar-chart .day-lbl{font-size:9.5px; color:var(--ink-soft); margin-top:4px;}
 
+.daily-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:8px 0;
+  border-bottom:1px solid var(--line);
+}
+.daily-row:last-child{border-bottom:none;}
+.daily-row .date{font-size:13px; font-weight:600; color:var(--ink);}
+.daily-row .right{display:flex; align-items:center; gap:10px;}
+.daily-row .count{font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink-soft);}
+.daily-row .xp{font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:700; color:var(--brass-dark); background:rgba(201,162,39,0.15); padding:2px 8px; border-radius:20px;}
+
 .breakdown-row{
   display:flex; align-items:center; gap:10px; margin-bottom:10px;
 }
@@ -681,6 +694,11 @@ nav button.active svg{stroke:var(--brass);}
       <div class="panel">
         <label class="field-label">Последние 7 дней</label>
         <div class="bar-chart" id="bar-chart"></div>
+      </div>
+
+      <div class="panel">
+        <label class="field-label">По дням</label>
+        <div id="daily-stats"></div>
       </div>
 
       <div class="panel">
@@ -1186,10 +1204,6 @@ function renderCatalog(){
         <button class="del-btn">🗑</button>
       </div>
       <div class="edit-panel">
-        <label class="field-label">Место</label>
-        <select class="edit-location"></select>
-        <label class="field-label">Срок</label>
-        <input type="date" class="edit-date" value="${item.dueDate||''}">
         <label class="field-label">XP</label>
         <input type="number" class="edit-xp" value="${item.xp}" min="0" step="5">
         <label class="field-label">Заметка</label>
@@ -1198,29 +1212,10 @@ function renderCatalog(){
       <div class="stamp-overlay" style="display:none;"><div class="stamp">ДОБЫТО</div></div>
     `;
 
-    // populate edit location select
-    const editLocSel = card.querySelector('.edit-location');
-    state.locations.forEach(loc=>{
-      const opt = document.createElement('option');
-      opt.value = loc; opt.textContent = loc;
-      if(loc===item.location) opt.selected = true;
-      editLocSel.appendChild(opt);
-    });
-
     card.querySelector('.edit-toggle').addEventListener('click', ()=>{
       card.querySelector('.edit-panel').classList.toggle('open');
     });
 
-    card.querySelector('.edit-location').addEventListener('change', async (e)=>{
-      item.location = e.target.value;
-      await saveState();
-      card.querySelector('.loc').textContent = item.location;
-    });
-    card.querySelector('.edit-date').addEventListener('change', async (e)=>{
-      item.dueDate = e.target.value;
-      await saveState();
-      renderCatalog();
-    });
     card.querySelector('.edit-xp').addEventListener('change', async (e)=>{
       item.xp = parseInt(e.target.value)||0;
       await saveState();
@@ -1375,6 +1370,14 @@ document.getElementById('bulk-clean-btn').addEventListener('click', async ()=>{
   showToast('Фото очищены: '+targets.length);
 });
 
+function pluralTasks(n){
+  const mod10 = n%10, mod100 = n%100;
+  if(mod100>=11 && mod100<=14) return 'заданий';
+  if(mod10===1) return 'задание';
+  if(mod10>=2 && mod10<=4) return 'задания';
+  return 'заданий';
+}
+
 // ---------- STATS ----------
 function renderStats(){
   const done = state.items.filter(i=>i.status==='done');
@@ -1428,6 +1431,35 @@ function renderStats(){
     col.appendChild(lbl);
     bar.appendChild(col);
   });
+
+  // ежедневная статистика: количество выполненных заданий и сумма XP за каждый день
+  const dailyStatsEl = document.getElementById('daily-stats');
+  dailyStatsEl.innerHTML = '';
+  const byDay = {};
+  done.forEach(i=>{
+    if(!i.doneAt) return;
+    const day = i.doneAt.slice(0,10);
+    if(!byDay[day]) byDay[day] = {count:0, xp:0};
+    byDay[day].count += 1;
+    byDay[day].xp += i.xp;
+  });
+  const sortedDays = Object.keys(byDay).sort((a,b)=> b.localeCompare(a));
+  if(sortedDays.length===0){
+    dailyStatsEl.innerHTML = '<div style="font-size:13px; color:var(--ink-soft); padding:6px 0;">Пока нет выполненных заданий.</div>';
+  }else{
+    sortedDays.forEach(day=>{
+      const info = byDay[day];
+      const row = document.createElement('div');
+      row.className = 'daily-row';
+      row.innerHTML = `
+        <span class="date">${fmtDate(day)}</span>
+        <span class="right">
+          <span class="count">${info.count} ${pluralTasks(info.count)}</span>
+          <span class="xp">${info.xp} XP</span>
+        </span>`;
+      dailyStatsEl.appendChild(row);
+    });
+  }
 
   // breakdown
   const bd = document.getElementById('breakdown');
