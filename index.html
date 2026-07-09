@@ -590,6 +590,87 @@ nav button.active{opacity:1; color:var(--brass);}
 nav button.active svg{stroke:var(--brass);}
 
 .hidden-input{display:none;}
+
+/* PRINT REPORT */
+#print-report{display:none;}
+.rep-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  border-bottom:3px solid #B5451B;
+  padding-bottom:10px;
+  margin-bottom:18px;
+}
+.rep-header .rep-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:32px;
+  letter-spacing:2px;
+  color:#1F2A1E;
+}
+.rep-header .rep-period{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  color:#5b5b52;
+  text-align:right;
+}
+.rep-summary{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:12px;
+  margin-bottom:22px;
+}
+.rep-summary .box{
+  border:1.5px solid #c9bfa4;
+  border-radius:6px;
+  padding:10px 12px;
+}
+.rep-summary .box .val{font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:700; color:#1F2A1E;}
+.rep-summary .box .lbl{font-size:10.5px; letter-spacing:0.5px; text-transform:uppercase; color:#5b5b52; margin-top:2px;}
+.rep-section-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:17px;
+  letter-spacing:1.5px;
+  color:#1F2A1E;
+  margin:20px 0 8px;
+  border-left:4px solid #B5451B;
+  padding-left:8px;
+}
+.rep-table{width:100%; border-collapse:collapse; font-size:12px; margin-bottom:6px;}
+.rep-table th{
+  text-align:left;
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  color:#5b5b52;
+  border-bottom:1.5px solid #2C2C28;
+  padding:5px 6px;
+}
+.rep-table td{padding:5px 6px; border-bottom:1px solid #dcd3ba;}
+.rep-table tr:last-child td{border-bottom:none;}
+.rep-footer{
+  margin-top:24px;
+  font-size:10px;
+  color:#5b5b52;
+  text-align:center;
+  border-top:1px solid #c9bfa4;
+  padding-top:8px;
+}
+
+@media print{
+  body *{ visibility:hidden !important; }
+  #print-report, #print-report *{ visibility:visible !important; }
+  #print-report{
+    display:block !important;
+    position:absolute;
+    top:0; left:0;
+    width:100%;
+    padding:0;
+    background:#fff;
+    color:#2C2C28;
+  }
+  @page{ size:A4; margin:16mm; }
+}
+
 </style>
 </head>
 <body>
@@ -707,6 +788,31 @@ nav button.active svg{stroke:var(--brass);}
       </div>
 
       <div class="panel">
+        <label class="field-label">Отчёт для печати (PDF, A4)</label>
+        <div style="font-size:12px; color:var(--ink-soft); margin-bottom:12px;">
+          Выбери период → «Сформировать отчёт» → в окне печати выбери «Сохранить как PDF».
+        </div>
+        <div class="tag-row" style="margin-bottom:12px;">
+          <button type="button" class="report-range-btn selected" data-range="week" style="flex:1; padding:9px 4px; border-radius:8px; border:2px solid var(--forest); background:var(--forest); color:var(--brass); font-weight:600; font-size:12.5px; cursor:pointer;">Неделя</button>
+          <button type="button" class="report-range-btn" data-range="month" style="flex:1; padding:9px 4px; border-radius:8px; border:2px solid var(--line); background:#fff; color:var(--ink-soft); font-weight:600; font-size:12.5px; cursor:pointer;">Месяц</button>
+          <button type="button" class="report-range-btn" data-range="custom" style="flex:1; padding:9px 4px; border-radius:8px; border:2px solid var(--line); background:#fff; color:var(--ink-soft); font-weight:600; font-size:12.5px; cursor:pointer;">Свой период</button>
+        </div>
+        <div id="custom-range-inputs" style="display:none;">
+          <div style="display:flex; gap:8px;">
+            <div style="flex:1;">
+              <label class="field-label">С</label>
+              <input type="date" id="report-from">
+            </div>
+            <div style="flex:1;">
+              <label class="field-label">По</label>
+              <input type="date" id="report-to">
+            </div>
+          </div>
+        </div>
+        <button class="btn-primary" id="generate-report-btn" style="background:var(--forest); box-shadow:0 3px 0 var(--forest-3);">Сформировать отчёт</button>
+      </div>
+
+      <div class="panel">
         <label class="field-label">Ручной перенос между устройствами (без интернета и аккаунтов)</label>
         <div style="font-size:12px; color:var(--ink-soft); margin-bottom:12px;">
           Выгрузи файл на одном устройстве → перешли его себе любым способом (почта, мессенджер, облако) → загрузи на другом.
@@ -722,6 +828,8 @@ nav button.active svg{stroke:var(--brass);}
     </section>
 
   </main>
+
+  <div id="print-report"></div>
 
   <nav>
     <button class="nav-btn active" data-screen="add">
@@ -1474,6 +1582,122 @@ function renderStats(){
       <span class="val">${count} шт · ${xp} XP</span>`;
     bd.appendChild(row);
   });
+}
+
+// ---------- ОТЧЁТ ДЛЯ ПЕЧАТИ (PDF через диалог печати браузера, A4) ----------
+let reportRange = 'week';
+
+document.querySelectorAll('.report-range-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.report-range-btn').forEach(b=>{
+      b.classList.remove('selected');
+      b.style.background = '#fff';
+      b.style.color = 'var(--ink-soft)';
+      b.style.borderColor = 'var(--line)';
+    });
+    btn.classList.add('selected');
+    btn.style.background = 'var(--forest)';
+    btn.style.color = 'var(--brass)';
+    btn.style.borderColor = 'var(--forest)';
+    reportRange = btn.dataset.range;
+    document.getElementById('custom-range-inputs').style.display = (reportRange==='custom') ? 'block' : 'none';
+  });
+});
+
+function getReportDates(){
+  const today = new Date();
+  let from, to;
+  if(reportRange==='week'){
+    const dow = (today.getDay()+6)%7; // Monday=0
+    from = new Date(today);
+    from.setDate(today.getDate()-dow);
+    to = new Date(today);
+  }else if(reportRange==='month'){
+    from = new Date(today.getFullYear(), today.getMonth(), 1);
+    to = new Date(today.getFullYear(), today.getMonth()+1, 0);
+  }else{
+    const fromVal = document.getElementById('report-from').value;
+    const toVal = document.getElementById('report-to').value;
+    if(!fromVal || !toVal){ return null; }
+    from = new Date(fromVal+'T00:00:00');
+    to = new Date(toVal+'T00:00:00');
+  }
+  const iso = d => d.toISOString().slice(0,10);
+  return { fromISO: iso(from), toISO: iso(to) };
+}
+
+document.getElementById('generate-report-btn').addEventListener('click', ()=>{
+  const range = getReportDates();
+  if(!range){ showToast('Укажите обе даты периода'); return; }
+  buildPrintReport(range.fromISO, range.toISO);
+  setTimeout(()=>{ window.print(); }, 60);
+});
+
+function buildPrintReport(fromISO, toISO){
+  const done = state.items.filter(i=>i.status==='done' && i.doneAt && i.doneAt.slice(0,10)>=fromISO && i.doneAt.slice(0,10)<=toISO);
+  const totalXp = done.reduce((s,i)=>s+i.xp,0);
+  const totalCount = done.length;
+  const daysInRange = Math.max(1, Math.round((new Date(toISO)-new Date(fromISO))/86400000)+1);
+  const avgPerDay = (totalXp/daysInRange).toFixed(1);
+
+  // по категориям
+  const catRows = Object.keys(TAG_META).map(tag=>{
+    const items = done.filter(i=>i.tag===tag);
+    return `<tr><td>${TAG_META[tag].label}</td><td>${items.length}</td><td>${items.reduce((s,i)=>s+i.xp,0)} XP</td></tr>`;
+  }).join('');
+
+  // по дням
+  const byDay = {};
+  done.forEach(i=>{
+    const day = i.doneAt.slice(0,10);
+    if(!byDay[day]) byDay[day] = {count:0, xp:0};
+    byDay[day].count += 1;
+    byDay[day].xp += i.xp;
+  });
+  const dayRows = Object.keys(byDay).sort().map(day=>{
+    const info = byDay[day];
+    return `<tr><td>${fmtDate(day)}</td><td>${info.count} шт.</td><td>${info.xp} XP</td></tr>`;
+  }).join('') || '<tr><td colspan="3" style="color:#5b5b52;">Нет выполненных заданий за этот период</td></tr>';
+
+  // список находок
+  const itemRows = done.slice().sort((a,b)=>a.doneAt.localeCompare(b.doneAt)).map(i=>{
+    return `<tr><td>${fmtDate(i.doneAt.slice(0,10))}</td><td>${TAG_META[i.tag].label}</td><td>${escapeHtml(i.note||'—')}</td><td>${i.xp} XP</td></tr>`;
+  }).join('') || '';
+
+  const html = `
+    <div class="rep-header">
+      <div class="rep-title">ОХОТНИК — ОТЧЁТ</div>
+      <div class="rep-period">Период: ${fmtDate(fromISO)} – ${fmtDate(toISO)}<br>Сформирован: ${fmtDate(todayISO())}</div>
+    </div>
+
+    <div class="rep-summary">
+      <div class="box"><div class="val">${totalCount}</div><div class="lbl">Заданий выполнено</div></div>
+      <div class="box"><div class="val">${totalXp}</div><div class="lbl">Всего XP</div></div>
+      <div class="box"><div class="val">${avgPerDay}</div><div class="lbl">XP в среднем/день</div></div>
+    </div>
+
+    <div class="rep-section-title">По категориям</div>
+    <table class="rep-table">
+      <thead><tr><th>Категория</th><th>Штук</th><th>XP</th></tr></thead>
+      <tbody>${catRows}</tbody>
+    </table>
+
+    <div class="rep-section-title">По дням</div>
+    <table class="rep-table">
+      <thead><tr><th>Дата</th><th>Штук</th><th>XP</th></tr></thead>
+      <tbody>${dayRows}</tbody>
+    </table>
+
+    ${itemRows ? `
+    <div class="rep-section-title">Список выполненного</div>
+    <table class="rep-table">
+      <thead><tr><th>Дата</th><th>Категория</th><th>Заметка</th><th>XP</th></tr></thead>
+      <tbody>${itemRows}</tbody>
+    </table>` : ''}
+
+    <div class="rep-footer">Охотник — трекер расхламления</div>
+  `;
+  document.getElementById('print-report').innerHTML = html;
 }
 
 document.getElementById('reset-data').addEventListener('click', async ()=>{
